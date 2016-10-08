@@ -1,0 +1,3 @@
+[submodule "fw/RIOT"]
+	path = fw/RIOT
+	url = https://github.com/RIOT-OS/RIOT.git

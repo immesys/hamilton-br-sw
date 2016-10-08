@@ -1,0 +1,6 @@
+[Unit]
+Description="BW2 nuke and pave"
+
+[Service]
+Type=oneshot
+ExecStart=/merged/firmware/bw2_nap.sh

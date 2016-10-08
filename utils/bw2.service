@@ -1,0 +1,16 @@
+[Unit]
+Description="BRGW"
+After=mfs.service
+Requires=mfs.service
+OnFailure=bw2_nap.service
+
+[Service]
+Restart=always
+RestartSec=10
+EnvironmentFile=/config/config.ini
+ExecStartPre=/merged/firmware/bw2_prep.sh
+ExecStart=/merged/firmware/bw2 router --conf /merged/router/bw2.ini
+
+
+[Install]
+WantedBy=multi-user.target

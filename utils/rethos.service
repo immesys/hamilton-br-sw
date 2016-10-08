@@ -1,0 +1,13 @@
+[Unit]
+Description="REthos"
+After=prepifaces.service
+Requires=prepifaces.service
+
+[Service]
+Restart=always
+RestartSec=10
+StartLimitAction=reboot-force
+ExecStart=/merged/firmware/rethos tap0 /dev/ttyAMA0 921600
+
+[Install]
+WantedBy=multi-user.target

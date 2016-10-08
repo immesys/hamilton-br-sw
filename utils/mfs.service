@@ -1,0 +1,8 @@
+[Unit]
+Description="Merged File System"
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StartLimitAction=reboot-force
+ExecStart=/opt/mfs.sh
