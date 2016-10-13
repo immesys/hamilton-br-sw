@@ -1,5 +1,7 @@
 [Unit]
 Description="Merged File System"
+After=dev-sda.device
+Requires=dev-sda.device
 
 [Service]
 Type=oneshot

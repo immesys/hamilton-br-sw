@@ -1,15 +1,9 @@
 [Unit]
 Description="Prep WAN"
-Before=network-pre.target
-Wants=network-pre.target
 After=mfs.service
 Requires=mfs.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-StartLimitAction=reboot-force
-ExecStart=/merged/firmware/prep_wan.sh
-
-[Install]
-WantedBy=network.target
+ExecStart=/firmware/prep_wan.sh

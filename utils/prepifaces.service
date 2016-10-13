@@ -1,11 +1,12 @@
 [Unit]
 Description="Prep interfaces"
+After=mfs.service
+Requires=mfs.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-StartLimitAction=reboot-force
-ExecStart=/merged/firmware/prep_ifaces.sh
+ExecStart=/firmware/prep_ifaces.sh
 
 [Install]
 WantedBy=multi-user.target

@@ -64,6 +64,7 @@ func processIncomingHeartbeats() {
 	}()
 	go func() {
 		for wanstate := range WanChan {
+			_ = wanstate
 			msg := make([]byte, 4)
 			msg[0] = HbTypePiToMcu
 			msg[1] = byte(wanstate)
@@ -73,8 +74,6 @@ func processIncomingHeartbeats() {
 			if err != nil {
 				fmt.Printf("got wanstate error: %v\n", err)
 				os.Exit(10)
-			} else {
-				fmt.Printf("wrote wanstate\n")
 			}
 		}
 	}()
@@ -114,39 +113,53 @@ func processIncomingHeartbeats() {
 
 const ResetInterval = 30 * time.Second
 
-func processWANStatus(bw *bw2bind.BW2Client) {
-	lasterr := puberror
-	lastsucc := pubsucc
-	lastReset := time.Now()
+var hasInternet bool
+
+func checkInternet() {
 	for {
-		bcip, err := bw.GetBCInteractionParams()
-		if err != nil {
-			fmt.Printf("Could not get BCIP: %v\n", err)
-			die()
-		}
 		resp, err := http.Get("http://steelcode.com/hbr.check")
-		hasInternet := false
 		if err == nil {
 			msg := make([]byte, 5)
 			n, err2 := resp.Body.Read(msg)
 			if err2 == nil && n == 5 && string(msg) == "HBROK" {
 				hasInternet = true
 			} else {
+				hasInternet = false
 				fmt.Printf("Internet check error 2: %d %v %x\n", n, err2, msg)
 			}
+			resp.Body.Close()
 		} else {
+			hasInternet = false
 			fmt.Printf("Internet check error 1: %v\n", err)
+		}
+		time.Sleep(5 * time.Second)
+	}
+}
+func processWANStatus(bw *bw2bind.BW2Client) {
+	lasterr := puberror
+	lastsucc := pubsucc
+	lastReset := time.Now()
+	for {
+		bcip, err := bw.GetBCInteractionParams()
+		lastAdvisory := BLINKING1
+		if err != nil {
+			fmt.Printf("Could not get BCIP: %v\n", err)
+			die()
 		}
 		if hasInternet {
 			if bcip.CurrentAge > BadAge {
+				lastAdvisory = BLINKING1
 				WanChan <- BLINKING1
 			} else {
 				if puberror > lasterr {
+					lastAdvisory = BLINKING2
 					WanChan <- BLINKING2
 				} else if pubsucc > lastsucc {
+					lastAdvisory = FULLON
 					WanChan <- FULLON
 				} else {
-					//We do not give an advisory until we fail or succeed once
+					//We do not give a new advisory until we fail or succeed once
+					WanChan <- lastAdvisory
 				}
 				if time.Now().Sub(lastReset) > ResetInterval {
 					lasterr = puberror
@@ -157,7 +170,7 @@ func processWANStatus(bw *bw2bind.BW2Client) {
 		} else {
 			WanChan <- FULLOFF
 		}
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -193,6 +206,8 @@ type LinkStats struct {
 	SumDropNotConnected uint64 `msgpack:"drop_not_connected"`
 	SumDomainReceived   uint64 `msgpack:"sum_domain_received"`
 	SumSerialForwarded  uint64 `msgpack:"sum_serial_forwarded"`
+	BRGW_PubOK          uint64 `msgpack:"br_pub_ok"`
+	BRGW_PubERR         uint64 `msgpack:"br_pub_err"`
 }
 
 func processStats(bw *bw2bind.BW2Client) {
@@ -230,6 +245,8 @@ func processStats(bw *bw2bind.BW2Client) {
 			ls.SumDomainReceived += domain_received
 			ls.SumSerialForwarded += serial_forwarded
 		}
+		ls.BRGW_PubERR = puberror
+		ls.BRGW_PubOK = pubsucc
 		po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.FromDotForm("2.0.10.2"), ls)
 		err = bw.Publish(&bw2bind.PublishParams{
 			URI:            fmt.Sprintf("%s/%s/s.hamilton/_/i.l7g/signal/stats", BaseURI, OurPopID),
@@ -309,6 +326,12 @@ func LedAnim(ledchan chan int) {
 		}
 	}
 }
+func printStats() {
+	for {
+		time.Sleep(10 * time.Second)
+		fmt.Printf("published %d ok, %d err\n", pubsucc, puberror)
+	}
+}
 func main() {
 	embd.InitGPIO()
 	defer embd.CloseGPIO()
@@ -316,6 +339,8 @@ func main() {
 	LedChan = make(chan int, 1)
 	WanChan = make(chan int, 1)
 	go LedAnim(LedChan)
+	go checkInternet()
+	go printStats()
 	//TODO set the Pi Led OFF before you do
 	//anything that could cause exit
 	OurPopID = os.Getenv("POP_ID")
@@ -337,6 +362,7 @@ func main() {
 	})
 	go processIncomingHeartbeats()
 	go processWANStatus(bw)
+	go processStats(bw)
 	processIncomingData(bw)
 }
 
@@ -346,14 +372,14 @@ func unpack(frame []byte) (*egressmessage, bool) {
 	}
 	fs := egressmessage{
 		//skip 0:4 - len+ cksum
-		Srcmac:  fmt.Sprintf("%012x", frame[0:8]),
-		Srcip:   net.IP(frame[8:24]).String(),
+		Srcmac:  fmt.Sprintf("%012x", frame[2:10]),
+		Srcip:   net.IP(frame[10:26]).String(),
 		Popid:   OurPopID,
-		Poptime: int64(binary.LittleEndian.Uint64(frame[24:32])),
+		Poptime: int64(binary.LittleEndian.Uint64(frame[26:34])),
 		Brtime:  time.Now().UnixNano(),
-		Rssi:    int(frame[33]),
-		Lqi:     int(frame[34]),
-		Payload: frame[35:],
+		Rssi:    int(frame[34]),
+		Lqi:     int(frame[35]),
+		Payload: frame[36:],
 	}
 	return &fs, true
 }

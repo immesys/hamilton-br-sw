@@ -2,12 +2,13 @@
 Description="REthos"
 After=prepifaces.service
 Requires=prepifaces.service
+After=uhcpd.service
+Requires=uhcpd.service
 
 [Service]
 Restart=always
 RestartSec=10
-StartLimitAction=reboot-force
-ExecStart=/merged/firmware/rethos tap0 /dev/ttyAMA0 921600
+ExecStart=/firmware/rethos tap0 /dev/ttyAMA0 921600
 
 [Install]
 WantedBy=multi-user.target

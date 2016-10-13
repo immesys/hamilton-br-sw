@@ -46,9 +46,11 @@ kernel_pid_t start_l7g(void);
 
 #define FULLOFF  1
 #define FULLON  2
-#define BLINKING  3
+#define BLINKING1  3
+#define BLINKING2  4
+#define BLINKING3  5
 
-#define BUILDVER 100
+#define BUILDVER 120
 int wan_status;
 int hb_status;
 uint64_t last_hb;
@@ -74,6 +76,10 @@ typedef struct __attribute__((packed))
   uint32_t tx_retries;
 } heartbeat_t;
 
+// X X X X X X X X X
+// 1 0 0 0 0 0 0 0 0
+// 1 0 1 0 0 0 0 0 0
+// 1 0 1 0 1 0 0 0 0
 int main(void)
 {
 
@@ -97,33 +103,66 @@ int main(void)
     rethos_handler_t hb_h = {.channel = CHANNEL_HEARTBEATS, .cb = heartbeat_callback};
     rethos_register_handler(&ethos, &hb_h);
     heartbeat_t hb;
+    int count = 0;
     while(1)
     {
-      xtimer_usleep(300000U);
+      count++;
+      int interval = count % 12;
+      xtimer_usleep(100000U);
+
       if (xtimer_now64() - last_hb < MAX_HB_TIME) {
-        if (wan_status == BLINKING) {
-          gpio_toggle(D5_PIN);
-        } else if (wan_status == FULLON) {
-          gpio_set(D5_PIN);
-        } else {
-          gpio_clear(D5_PIN);
-        }
+        //Heartbeats ok
         gpio_set(D3_PIN);
+        switch(wan_status) {
+          case BLINKING1:
+            if (interval == 0) {
+              gpio_set(D5_PIN);
+            } else {
+              gpio_clear(D5_PIN);
+            }
+            break;
+          case BLINKING2:
+            if (interval == 0 || interval == 2) {
+              gpio_set(D5_PIN);
+            } else {
+              gpio_clear(D5_PIN);
+            }
+            break;
+          case BLINKING3:
+            if (interval == 0 || interval == 2 || interval == 4) {
+              gpio_set(D5_PIN);
+            } else {
+              gpio_clear(D5_PIN);
+            }
+            break;
+          case FULLON:
+            gpio_set(D5_PIN);
+            break;
+          default:
+            gpio_clear(D5_PIN);
+            break;
+        }
       } else {
-        gpio_toggle(D3_PIN);
+        if (interval < 6) {
+          gpio_set(D3_PIN);
+        } else {
+          gpio_clear(D3_PIN);
+        }
         gpio_clear(D5_PIN);
       }
-
-      hb.type = HB_TYPE_MCU_TO_PI;
-      hb.uptime = xtimer_now64();
-      hb.rx_crc_fail = ethos.stats_rx_cksum_fail;
-      hb.rx_bytes = ethos.stats_rx_bytes;
-      hb.rx_frames = ethos.stats_rx_frames;
-      hb.tx_frames = ethos.stats_tx_frames;
-      hb.tx_bytes = ethos.stats_tx_bytes;
-      hb.tx_retries = ethos.stats_tx_retries;
-      hb.buildver = BUILDVER;
-      rethos_send_frame(&ethos, (uint8_t*)&hb, sizeof(hb), CHANNEL_HEARTBEATS, RETHOS_FRAME_TYPE_DATA);
+      if (count % 5 == 0)
+      {
+        hb.type = HB_TYPE_MCU_TO_PI;
+        hb.uptime = xtimer_now64();
+        hb.rx_crc_fail = ethos.stats_rx_cksum_fail;
+        hb.rx_bytes = ethos.stats_rx_bytes;
+        hb.rx_frames = ethos.stats_rx_frames;
+        hb.tx_frames = ethos.stats_tx_frames;
+        hb.tx_bytes = ethos.stats_tx_bytes;
+        hb.tx_retries = ethos.stats_tx_retries;
+        hb.buildver = BUILDVER;
+        rethos_send_frame(&ethos, (uint8_t*)&hb, sizeof(hb), CHANNEL_HEARTBEATS, RETHOS_FRAME_TYPE_DATA);
+      }
     }
     /* should be never reached */
     return 0;

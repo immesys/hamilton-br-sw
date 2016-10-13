@@ -12,5 +12,6 @@ fi
 
 if [ ! -e /merged/router/router.ent ]
 then
-  /merged/firmware/bw2 makeconf --logfile /merged/router/log.txt --dbpath /merged/db --conf /merged/router/bw2.ini
+  set -x
+  /firmware/bw2 makeconf --logfile /merged/router/log.txt --dbpath /merged/db --conf /merged/router/bw2.ini
 fi

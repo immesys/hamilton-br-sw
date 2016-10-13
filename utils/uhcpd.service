@@ -6,7 +6,7 @@ Requires=prepifaces.service
 [Service]
 Restart=always
 RestartSec=10
-ExecStart=/merged/firmware/uhcpd tap0 2001:410::/48
+ExecStart=/firmware/uhcpd tap0 2001:410::/48
 
 [Install]
 WantedBy=multi-user.target

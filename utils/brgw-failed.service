@@ -1,0 +1,6 @@
+[Unit]
+Description="BRGW nuke and pave"
+
+[Service]
+Type=oneshot
+ExecStart=/firmware/bw2_nap.sh

@@ -5,6 +5,7 @@
 umount /merged
 umount /volatile
 umount /config
+umount /firmware
 
 partprobe
 if [ ! -e /dev/sda2 ]
@@ -53,3 +54,21 @@ then
   echo "could not mount config"
   exit 1
 fi
+
+rsync -PHav /config/firmware/ /volatile/upper/firmware/
+if [ $? -ne 0]
+then
+  echo "could not copy firmware"
+  exit 1
+fi
+
+mount -t overlay -o \
+lowerdir=/volatile/upper/firmware:/factory_firmware \
+overlay /firmware
+if [ $? -ne 0 ]
+then
+  echo "could not overlay firmware"
+  exit 1
+fi
+
+rm -f /volatile/napp

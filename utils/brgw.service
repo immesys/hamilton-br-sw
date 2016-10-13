@@ -1,5 +1,5 @@
 [Unit]
-Description="BW2 Agent"
+Description="BWRGW"
 After=bw2.service
 Requires=bw2.service
 After=rethos.service
@@ -7,10 +7,10 @@ Requires=rethos.service
 
 [Service]
 Restart=always
-RestartSec=10
+RestartSec=30
 StartLimitAction=reboot-force
 EnvironmentFile=/config/config.ini
-ExecStart=/merged/firmware/brgw
+ExecStart=/firmware/brgw
 
 [Install]
 WantedBy=multi-user.target
