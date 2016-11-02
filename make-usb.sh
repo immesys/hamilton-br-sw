@@ -39,6 +39,9 @@ POP_HOSTNAME=hamilton-br
 # for dhcp
 NETWORK=DHCP
 
+# to override mac address
+# SET_MAC=aa:bb:cc:dd:ee:ff
+
 # for static
 # NETWORK=STATIC
 # STATIC_IP=192.168.1.90/24
@@ -57,7 +60,7 @@ cat <<EOM >p1/config.ini
 # to avoid bad things
 POP_ID=mypopID
 # the URI to associate the L7G with. This would become:
-# my/url/$$POP_ID/s.hamilton/<mac of sensor>/i.l7g/signal/+
+# my/url/<POP_ID>/s.hamilton/<mac of sensor>/i.l7g/signal/+
 POP_BASE_URI=my/url
 # /config references the first partition of the flash drive
 BW2_DEFAULT_ENTITY=/config/an_entity.ent

@@ -139,9 +139,9 @@ func processWANStatus(bw *bw2bind.BW2Client) {
 	lasterr := puberror
 	lastsucc := pubsucc
 	lastReset := time.Now()
+	lastAdvisory := BLINKING1
 	for {
 		bcip, err := bw.GetBCInteractionParams()
-		lastAdvisory := BLINKING1
 		if err != nil {
 			fmt.Printf("Could not get BCIP: %v\n", err)
 			die()
