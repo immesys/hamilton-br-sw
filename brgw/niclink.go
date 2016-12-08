@@ -4,11 +4,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/immesys/wd"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/rpi"
 	"gopkg.in/immesys/bw2bind.v5"
@@ -31,12 +32,14 @@ const FULLON = 2
 const BLINKING1 = 3
 const BLINKING2 = 4
 const BLINKING3 = 5
-const BadAge = 2 * time.Minute
+const BadAge = 5 * time.Minute
 
 var WanChan chan int
 
 var puberror uint64
 var pubsucc uint64
+
+var BRName string
 
 func die() {
 	embd.CloseGPIO()
@@ -105,6 +108,7 @@ func processIncomingHeartbeats() {
 		}
 		if num >= 12 && binary.LittleEndian.Uint32(buf) == HbTypeMcuToPi {
 			gotHeartbeat <- true
+			go wd.RLKick(5*time.Second, "410.br."+BRName+".mcu", 30)
 		} else {
 			hbokay <- false
 		}
@@ -117,22 +121,28 @@ var hasInternet bool
 
 func checkInternet() {
 	for {
-		resp, err := http.Get("http://steelcode.com/hbr.check")
-		if err == nil {
-			msg := make([]byte, 5)
-			n, err2 := resp.Body.Read(msg)
-			if err2 == nil && n == 5 && string(msg) == "HBROK" {
-				hasInternet = true
-			} else {
-				hasInternet = false
-				fmt.Printf("Internet check error 2: %d %v %x\n", n, err2, msg)
-			}
-			resp.Body.Close()
-		} else {
+		err := wd.Kick("410.br."+BRName+".wan", 30)
+		if err != nil {
 			hasInternet = false
-			fmt.Printf("Internet check error 1: %v\n", err)
+		} else {
+			hasInternet = true
 		}
-		time.Sleep(5 * time.Second)
+		// resp, err := http.Get("http://steelcode.com/hbr.check")
+		// if err == nil {
+		// 	msg := make([]byte, 5)
+		// 	n, err2 := resp.Body.Read(msg)
+		// 	if err2 == nil && n == 5 && string(msg) == "HBROK" {
+		// 		hasInternet = true
+		// 	} else {
+		// 		hasInternet = false
+		// 		fmt.Printf("Internet check error 2: %d %v %x\n", n, err2, msg)
+		// 	}
+		// 	resp.Body.Close()
+		// } else {
+		// 	hasInternet = false
+		// 	fmt.Printf("Internet check error 1: %v\n", err)
+		// }
+		time.Sleep(10 * time.Second)
 	}
 }
 func processWANStatus(bw *bw2bind.BW2Client) {
@@ -150,11 +160,15 @@ func processWANStatus(bw *bw2bind.BW2Client) {
 			if bcip.CurrentAge > BadAge {
 				lastAdvisory = BLINKING1
 				WanChan <- BLINKING1
+				go wd.RLFault(5*time.Second, "410.br."+BRName+".chain", fmt.Sprintf("Chain is %s old", bcip.CurrentAge))
 			} else {
+				go wd.RLKick(5*time.Second, "410.br."+BRName+".chain", 25)
 				if puberror > lasterr {
 					lastAdvisory = BLINKING2
+					go wd.RLFault(5*time.Second, "410.br."+BRName+".priv", "publish errors")
 					WanChan <- BLINKING2
 				} else if pubsucc > lastsucc {
+					go wd.RLKick(5*time.Second, "410.br."+BRName+".priv", 25)
 					lastAdvisory = FULLON
 					WanChan <- FULLON
 				} else {
@@ -348,6 +362,8 @@ func main() {
 		fmt.Println("Missing $POP_ID")
 		die()
 	}
+	BRName = strings.Replace(OurPopID, "-", "_", -1)
+	BRName = strings.ToLower(OurPopID)
 	BaseURI = os.Getenv("POP_BASE_URI")
 	if BaseURI == "" {
 		fmt.Println("Missing $POP_BASE_URI")

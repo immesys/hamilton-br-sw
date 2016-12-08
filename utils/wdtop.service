@@ -1,0 +1,20 @@
+[Unit]
+Description=WatchDog top
+Documentation=https://github.com/immesys/wd/wdtop
+
+[Service]
+Environment=WD_TOKEN=be1b00e87176d9a7a247b2b33fe1b43991136fa45706d4c7b9ba518f3ed48dd9
+EnvironmentFile=/config/config.ini
+Environment=GOMAXPROCS=1
+ExecStart=/firmware/wdtop \
+  --min-mem-mb 200 \
+  --max-cpu-percent 95 \
+  --df /:root:5000 \
+  --df /volatile:volatile:5000 \
+  --interval 5m
+
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target

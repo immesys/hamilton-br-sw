@@ -1,0 +1,21 @@
+
+[Unit]
+Description=WatchDog SystemD monitor
+Documentation=https://github.com/immesys/wd/sdmon
+
+[Service]
+Environment=WD_TOKEN=be1b00e87176d9a7a247b2b33fe1b43991136fa45706d4c7b9ba518f3ed48dd9
+EnvironmentFile=/config/config.ini
+Environment=GOMAXPROCS=1
+ExecStart=/firmware/sdmon \
+  --holdoff 10m \
+  --interval 5m \
+  --unit bw2:bw2 \
+  --unit rethos:rethos \
+  --unit brgw:brgw
+
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
