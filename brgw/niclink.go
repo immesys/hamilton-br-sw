@@ -9,11 +9,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/immesys/bw2bind"
 	"github.com/immesys/wd"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/rpi"
-	"gopkg.in/immesys/bw2bind.v5"
 )
+
+//go:generate protoc pb/dlog.proto --go_out=.
 
 var OurPopID string
 var BaseURI string
@@ -293,6 +295,7 @@ func processIncomingData(bw *bw2bind.BW2Client) {
 			fmt.Println("bad frame")
 			continue
 		}
+		logFrameToDatalogger(frame)
 		po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.PONumL7G1Raw, frame)
 		err = bw.Publish(&bw2bind.PublishParams{
 			URI:            fmt.Sprintf("%s/%s/s.hamilton/%s/i.l7g/signal/raw", BaseURI, OurPopID, frame.Srcmac),
