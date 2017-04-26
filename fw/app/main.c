@@ -75,17 +75,8 @@ void heartbeat_callback(ethos_t *dev, uint8_t channel, uint8_t *data, uint16_t l
     }
 }
 
-#ifdef COLLECT_TCP_STATS
-#include "tcp_benchmark/common.h"
-struct benchmark_stats stats = {0};
-#else
-heartbeat_t hb;
-#endif
 void downlink_callback(ethos_t* dev, uint8_t channel, uint8_t* data, uint16_t length)
 {
-#ifdef COLLECT_TCP_STATS
-    stats.hamilton_tcp_segs_received++;
-#endif
     gnrc_pktsnip_t* pkt = gnrc_pktbuf_add(NULL, data, length, GNRC_NETTYPE_IPV6);
     if (pkt == NULL) {
         return;
@@ -107,6 +98,8 @@ typedef struct __attribute__((packed))
   uint32_t tx_bytes;
   uint32_t tx_retries;
 } heartbeat_t;
+
+heartbeat_t hb;
 
 int get_ipv6_addr_from_ll(ipv6_addr_t* my_addr, kernel_pid_t radio_pid) {
     ipv6_addr_t my_ipv6_addr;
