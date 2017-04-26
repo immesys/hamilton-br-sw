@@ -42,7 +42,7 @@ endif
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
 USEMODULE += gnrc_ipv6_autoconf_onehop
 USEMODULE += gnrc_netdev_default
-USEMODULE += gnrc_dutymac
+#USEMODULE += gnrc_dutymac
 USEMODULE += gnrc_udp
 USEMODULE += netdev2_eth
 USEMODULE += auto_init_gnrc_netif
