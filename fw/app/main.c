@@ -95,7 +95,7 @@ void heartbeat_callback(ethos_t *dev, uint8_t channel, uint8_t *data, uint16_t l
         last_hb = xtimer_now_usec64();
         wan_status = data[1];
 
-        clear_watchdog();
+        //clear_watchdog();
     }
 }
 
@@ -170,7 +170,7 @@ int get_ipv6_addr_from_ll(ipv6_addr_t* my_addr, kernel_pid_t radio_pid) {
 int main(void)
 {
     /* Set up the watchdog before anything else. */
-    setup_watchdog();
+    //setup_watchdog();
 
     kernel_pid_t radio_pid = get_6lowpan_pid();
     assert(radio_pid != 0);
