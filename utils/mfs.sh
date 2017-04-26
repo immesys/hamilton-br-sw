@@ -55,11 +55,14 @@ then
   exit 1
 fi
 
-rsync -PHav /config/firmware/ /volatile/upper/firmware/
-if [ $? -ne 0]
+if [ -e /config/firmware ]
 then
-  echo "could not copy firmware"
-  exit 1
+  rsync -PHav /config/firmware/ /volatile/upper/firmware/
+  if [ $? -ne 0 ]
+  then
+    echo "could not copy firmware"
+    exit 1
+  fi
 fi
 
 mount -t overlay -o \
@@ -70,5 +73,3 @@ then
   echo "could not overlay firmware"
   exit 1
 fi
-
-rm -f /volatile/napp

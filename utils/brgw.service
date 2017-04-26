@@ -1,14 +1,13 @@
 [Unit]
 Description="BWRGW"
-After=bw2.service
-Requires=bw2.service
 After=rethos.service
 Requires=rethos.service
+After=ragent.service
+Requires=ragent.service
 
 [Service]
 Restart=always
-RestartSec=30
-StartLimitAction=reboot-force
+RestartSec=10
 EnvironmentFile=/config/config.ini
 ExecStart=/firmware/brgw
 

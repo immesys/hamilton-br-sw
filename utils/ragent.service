@@ -1,0 +1,12 @@
+[Unit]
+Description="RAgent"
+After=prepwan.service
+Requires=prepwan.service
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/firmware/ragent client /firmware/ragentclient.ent ragent.cal-sdb.org:28590 "MT3dKUYB8cnIfsbnPrrgy8Cb_8whVKM-Gtg2qd79Xco=" 127.0.0.1:28589
+
+[Install]
+WantedBy=multi-user.target

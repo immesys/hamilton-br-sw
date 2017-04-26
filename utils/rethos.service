@@ -2,8 +2,6 @@
 Description="REthos"
 After=prepifaces.service
 Requires=prepifaces.service
-After=uhcpd.service
-Requires=uhcpd.service
 
 [Service]
 Restart=always

@@ -263,6 +263,14 @@ func processStats(bw *bw2bind.BW2Client) {
 	for {
 		buf := make([]byte, 32*1024)
 		num, _, err := conn.ReadFromUnix(buf)
+		if err != nil {
+			fmt.Printf("Unix socket error: %v\n", err)
+			os.Exit(1)
+		}
+		if num < 10256 {
+			fmt.Printf("Abort malformed stats frame, length %d\n", num)
+			os.Exit(1)
+		}
 		buf = buf[:num]
 		ls := LinkStats{}
 		idx := 4 //Skip the first four fields

@@ -162,10 +162,10 @@ int main(void)
 
     printf("My IP address is %s\n", ipstr);
 
-    gnrc_ipv6_netif_t* radio_if = gnrc_ipv6_netif_get(radio_pid);
-    assert(radio_if != NULL);
+  //  gnrc_ipv6_netif_t* radio_if = gnrc_ipv6_netif_get(radio_pid);
+//    assert(radio_if != NULL);
     gnrc_ipv6_netif_add_addr(radio_pid, &ipv6_addr, ipv6_prefix_bytes << 3, 0);
-    gnrc_ipv6_netif_set_router(radio_if, true);
+  //  gnrc_ipv6_netif_set_router(radio_if, true);
 
     gpio_init(D1_PIN, GPIO_OUT);
     gpio_init(D2_PIN, GPIO_OUT);
