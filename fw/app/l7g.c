@@ -10,12 +10,9 @@
 #include <rethos.h>
 #include <board.h>
 
-//#include "net/gnrc/pktdump.h"
-//#include "timex.h"
-//#include "xtimer.h"
 #define CHANNEL_L7G 5
 
-extern ethos_t ethos;
+extern ethos_t rethos;
 
 #define Q_SZ 256
 
@@ -32,10 +29,7 @@ typedef struct __attribute__((packed))
 static staging_hdr_t shdr;
 void _handle_incoming_pkt(gnrc_pktsnip_t *p)
 {
-  //printf("received packet\n");
   gnrc_pktsnip_t *tmp;
-  //LL_SEARCH_SCALAR(p, tmp, type, GNRC_NETTYPE_UDP);
-  //udp_hdr_t *udp = (udp_hdr_t *)tmp->data;
   LL_SEARCH_SCALAR(p, tmp, type, GNRC_NETTYPE_IPV6);
   ipv6_hdr_t *ip = (ipv6_hdr_t *)tmp->data;
   LL_SEARCH_SCALAR(p, tmp, type, GNRC_NETTYPE_NETIF);
@@ -44,25 +38,25 @@ void _handle_incoming_pkt(gnrc_pktsnip_t *p)
   shdr.rssi = nif->rssi;
   shdr.lqi = nif->lqi;
   memcpy(&shdr.srcip[0], &ip->src.u8[0], 16);
-  shdr.recv_time = xtimer_now64();
+  shdr.recv_time = xtimer_now_usec64();
   shdr.len = p->size;
   char* payload = (char *)p->data;
-  rethos_start_frame(&ethos, (uint8_t*)&shdr, sizeof(staging_hdr_t), CHANNEL_L7G, RETHOS_FRAME_TYPE_DATA);
-  rethos_continue_frame(&ethos, (uint8_t*)payload, shdr.len);
-  rethos_end_frame(&ethos);
+  rethos_start_frame(&rethos, (uint8_t*)&shdr, sizeof(staging_hdr_t), CHANNEL_L7G, RETHOS_FRAME_TYPE_DATA);
+  rethos_continue_frame(&rethos, (uint8_t*)payload, shdr.len);
+  rethos_end_frame(&rethos);
 }
 
 void *l7g_main(void *a)
 {
-    //printf("main l7g started");
     static msg_t _msg_q[Q_SZ];
     msg_t msg, reply;
     reply.type = GNRC_NETAPI_MSG_TYPE_ACK;
     reply.content.value = -ENOTSUP;
     msg_init_queue(_msg_q, Q_SZ);
     gnrc_pktsnip_t *pkt = NULL;
-    gnrc_netreg_entry_t me_reg = { .demux_ctx = 4747, .pid = thread_getpid() };
-    gnrc_netreg_register(GNRC_NETTYPE_UDP, &me_reg);
+    kernel_pid_t me_pid = thread_getpid();
+    gnrc_netreg_entry_t me_reg = GNRC_NETREG_ENTRY_INIT_PID(4747, me_pid);
+    gnrc_netreg_register(GNRC_NETTYPE_UDP , &me_reg);
     while (1) {
         msg_receive(&msg);
         switch (msg.type) {

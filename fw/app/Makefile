@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = an-br
+APPLICATION = rethos-br
 
 # If no BOARD is found in the environment, use this default:
 BOARD = samr21-xpro
@@ -16,35 +16,56 @@ BOARD_INSUFFICIENT_MEMORY := airfy-beacon cc2650stk msb-430 msb-430h pca10000 pc
 # UART, but not on native, as native has a tap interface towards the host.
 ifeq (,$(filter native,$(BOARD)))
 GNRC_NETIF_NUMOF := 2
-USEMODULE += rethos gnrc_netdev2
+USEMODULE += rethos
+USEMODULE += random
+USEMODULE += gnrc_netdev2
+CFLAGS += -DRTT_STDIO_DISABLE_STDIN
+USEMODULE += rtt_stdio
 
-# ethos baudrate can be configured from make command
-ETHOS_BAUDRATE ?= 921600
-CFLAGS += '-DETHOS_UART=UART_DEV(0)' -DETHOS_BAUDRATE=$(ETHOS_BAUDRATE) -DUSE_ETHOS_FOR_STDIO
+USEMODULE += at86rf233
+
+# Prefix length is assumed to be 64
+CFLAGS += -DHAMILTON_BORDER_ROUTER_ADDRESS=\"fc00::1\"
+
+# Unset this for the Border Router... though you also would need to use the
+# Border Router kernel (which is needed to work properly with the samr21 and
+# rethos).
+CFLAGS += -DI_AM_HAMILTON_BORDER_ROUTER
+
+# rethos baudrate can be configured from make command
+RETHOS_BAUDRATE ?= 921600
+CFLAGS += '-DRETHOS_UART=UART_DEV(0)' -DRETHOS_BAUDRATE=$(RETHOS_BAUDRATE)
 FEATURES_REQUIRED += periph_uart
 endif
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
+USEMODULE += gnrc_ipv6_autoconf_onehop
 USEMODULE += gnrc_netdev_default
+USEMODULE += gnrc_dutymac
+USEMODULE += gnrc_udp
+USEMODULE += netdev2_eth
 USEMODULE += auto_init_gnrc_netif
-# Specify the mandatory networking modules for 6LoWPAN border router
-USEMODULE += gnrc_sixlowpan_border_router_default
+USEMODULE += gnrc_sixlowpan_frag
+
 # Add forwarding table
 USEMODULE += fib
 # Additional networking modules that can be dropped if not needed
 USEMODULE += gnrc_icmpv6_echo
 # Add also the shell, some shell commands
-USEMODULE += shell
-USEMODULE += shell_commands
-USEMODULE += ps
+# USEMODULE += shell
+# USEMODULE += shell_commands
+# USEMODULE += ps
 
-# include UHCP client
-USEMODULE += gnrc_uhcpc
+
+# Comment this out to disable code in RIOT that does safety checking
+# which is not needed in a production environment but helps in the
+# development process:
+CFLAGS += -DDEVELHELP
 
 # Set a custom 802.15.4 channel if needed
 DEFAULT_CHANNEL = 25
-CFLAGS += -DDEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
+CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
