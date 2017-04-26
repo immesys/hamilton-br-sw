@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/coreos/go-systemd/dbus"
+
 	"github.com/immesys/wd"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/rpi"
@@ -32,7 +34,8 @@ const FULLON = 2
 const BLINKING1 = 3
 const BLINKING2 = 4
 const BLINKING3 = 5
-const BadAge = 5 * time.Minute
+const BadAge = 2 * time.Hour
+const MaxBadAgeTrigger = 1 * time.Hour
 
 var WanChan chan int
 
@@ -145,6 +148,32 @@ func checkInternet() {
 		time.Sleep(10 * time.Second)
 	}
 }
+
+var timeEnteredBadness time.Time
+
+//This will restart bw2 if the chain has stalled for too long
+func checkExtremeAction(bcip *bw2bind.CurrentBCIP) {
+	if bcip.CurrentAge < MaxBadAgeTrigger {
+		timeEnteredBadness = time.Time{}
+		return
+	}
+	if timeEnteredBadness.IsZero() {
+		timeEnteredBadness = time.Now()
+		return
+	}
+	if time.Now().Sub(timeEnteredBadness) < 2*time.Hour {
+		return
+	}
+	//You're in trouble now
+	conn, err := dbus.New()
+	if err != nil {
+		panic(err)
+	}
+	conn.ResetFailedUnit("bw2.service")
+	conn.RestartUnit("bw2.service", "replace", nil)
+	timeEnteredBadness = time.Time{}
+	return
+}
 func processWANStatus(bw *bw2bind.BW2Client) {
 	lasterr := puberror
 	lastsucc := pubsucc
@@ -156,6 +185,7 @@ func processWANStatus(bw *bw2bind.BW2Client) {
 			fmt.Printf("Could not get BCIP: %v\n", err)
 			die()
 		}
+		checkExtremeAction(bcip)
 		if hasInternet {
 			if bcip.CurrentAge > BadAge {
 				lastAdvisory = BLINKING1
@@ -372,7 +402,7 @@ func main() {
 	bw := bw2bind.ConnectOrExit("")
 	bw.SetEntityFromEnvironOrExit()
 	bw.OverrideAutoChainTo(true)
-	var Maxage int64 = 5 * 60
+	var Maxage int64 = 6 * 60 * 60
 	bw.SetBCInteractionParams(&bw2bind.BCIP{
 		Maxage: &Maxage,
 	})
