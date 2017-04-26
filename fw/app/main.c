@@ -30,6 +30,28 @@
 #include "net/gnrc/ipv6/netif.h"
 #include "net/gnrc/ipv6/autoconf_onehop.h"
 
+#include "cmsis/samr21/include/component/gclk.h"
+#include "cmsis/samr21/include/component/wdt.h"
+#include "cmsis/samr21/include/instance/wdt.h"
+
+void clear_watchdog(void) {
+    volatile WDT_CLEAR_Type* wdt_clear = (volatile WDT_CLEAR_Type*) &REG_WDT_CLEAR;
+    wdt_clear->reg = 0xA5;
+}
+
+void setup_watchdog(void) {
+    /* Setup GCLK_WDT at 1 */
+    GCLK->GENDIV.reg  = (GCLK_GENDIV_ID(3)  | GCLK_GENDIV_DIV(255));
+    GCLK->GENCTRL.reg = (GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K);
+    while (GCLK->STATUS.bit.SYNCBUSY) {}
+
+    volatile WDT_CTRL_Type* wdt_ctrl = (volatile WDT_CTRL_Type*) &REG_WDT_CTRL;
+    wdt_ctrl->bit.ALWAYSON = 1;
+
+    volatile WDT_CONFIG_Type* wdt_config = (volatile WDT_CONFIG_Type*) &REG_WDT_CONFIG;
+    wdt_config->bit.PER = 0xB;
+}
+
 #define MAIN_QUEUE_SIZE     (8)
 
 #define D1_PIN GPIO_PIN(0, 27)
@@ -72,6 +94,8 @@ void heartbeat_callback(ethos_t *dev, uint8_t channel, uint8_t *data, uint16_t l
     if (length >= 4) {
         last_hb = xtimer_now_usec64();
         wan_status = data[1];
+
+        clear_watchdog();
     }
 }
 
@@ -145,6 +169,9 @@ int get_ipv6_addr_from_ll(ipv6_addr_t* my_addr, kernel_pid_t radio_pid) {
 // 1 0 1 0 1 0 0 0 0
 int main(void)
 {
+    /* Set up the watchdog before anything else. */
+    setup_watchdog();
+
     kernel_pid_t radio_pid = get_6lowpan_pid();
     assert(radio_pid != 0);
 
