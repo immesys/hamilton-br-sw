@@ -1,2 +1,4 @@
 fw/app/bin
 rel/fschain
+rel/
+*.sfmap
