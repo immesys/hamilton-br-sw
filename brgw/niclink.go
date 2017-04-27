@@ -3,17 +3,19 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/rpi"
+
 	"github.com/coreos/go-systemd/dbus"
 
 	"github.com/immesys/wd"
-	"github.com/kidoman/embd"
-	_ "github.com/kidoman/embd/host/rpi"
 	"gopkg.in/immesys/bw2bind.v5"
 )
 
@@ -25,7 +27,8 @@ const HeartbeatTimeout = 2 * time.Second
 const BlinkInterval = 200 * time.Millisecond
 const HbTypeMcuToPi = 1
 const HbTypePiToMcu = 2
-const PILED = 25
+
+var PILED = rpi.P1_22
 
 var LedChan chan int
 
@@ -45,7 +48,6 @@ var pubsucc uint64
 var BRName string
 
 func die() {
-	embd.CloseGPIO()
 	os.Exit(1)
 }
 func processIncomingHeartbeats() {
@@ -353,26 +355,26 @@ func LedAnim(ledchan chan int) {
 		for x := range ledchan {
 			state = x
 			if state == FULLOFF {
-				embd.DigitalWrite(PILED, embd.Low)
+				PILED.Out(false)
 			}
 			if state == FULLON {
-				embd.DigitalWrite(PILED, embd.High)
+				PILED.Out(true)
 			}
 		}
 	}()
 	for {
 		<-time.After(BlinkInterval)
 		if state == FULLOFF {
-			embd.DigitalWrite(PILED, embd.Low)
+			PILED.Out(false)
 		}
 		if state == FULLON {
-			embd.DigitalWrite(PILED, embd.High)
+			PILED.Out(true)
 		}
 		if state == BLINKING1 {
 			if lastval {
-				embd.DigitalWrite(PILED, embd.Low)
+				PILED.Out(false)
 			} else {
-				embd.DigitalWrite(PILED, embd.High)
+				PILED.Out(true)
 			}
 			lastval = !lastval
 		}
@@ -385,9 +387,10 @@ func printStats() {
 	}
 }
 func main() {
-	embd.InitGPIO()
-	defer embd.CloseGPIO()
-	embd.SetDirection(PILED, embd.Out)
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
 	LedChan = make(chan int, 1)
 	WanChan = make(chan int, 1)
 	go LedAnim(LedChan)
@@ -406,6 +409,9 @@ func main() {
 	if BaseURI == "" {
 		fmt.Println("Missing $POP_BASE_URI")
 		die()
+	}
+	if strings.HasSuffix(BaseURI, "/") {
+		BaseURI = BaseURI[:len(BaseURI)-1]
 	}
 	bw := bw2bind.ConnectOrExit("")
 	bw.SetEntityFromEnvironOrExit()

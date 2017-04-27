@@ -36,6 +36,7 @@ fi
 mkdir -p /volatile/upper
 mkdir -p /volatile/work
 
+
 mount -t overlay -o \
 lowerdir=/vimage,\
 upperdir=/volatile/upper,\
@@ -54,6 +55,8 @@ then
   echo "could not mount config"
   exit 1
 fi
+
+mkdir -p /volatile/upper/firmware
 
 if [ -e /config/firmware ]
 then
