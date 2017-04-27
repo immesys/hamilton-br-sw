@@ -57,12 +57,6 @@ USEMODULE += gnrc_icmpv6_echo
 # USEMODULE += shell_commands
 # USEMODULE += ps
 
-
-# Comment this out to disable code in RIOT that does safety checking
-# which is not needed in a production environment but helps in the
-# development process:
-# CFLAGS += -DDEVELHELP
-
 # Set a custom 802.15.4 channel if needed
 DEFAULT_CHANNEL = 25
 CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
