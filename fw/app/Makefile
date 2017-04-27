@@ -47,6 +47,7 @@ USEMODULE += gnrc_udp
 USEMODULE += netdev2_eth
 USEMODULE += auto_init_gnrc_netif
 USEMODULE += gnrc_sixlowpan_frag
+USEMODULE += gnrc_sixlowpan_iphc
 
 # Add forwarding table
 USEMODULE += fib
