@@ -10,7 +10,7 @@ Environment=GOMAXPROCS=1
 ExecStart=/firmware/sdmon \
   --holdoff 10m \
   --interval 5m \
-  --unit bw2:bw2 \
+  --unit ragent:ragent \
   --unit rethos:rethos \
   --unit brgw:brgw
 
