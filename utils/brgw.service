@@ -2,8 +2,6 @@
 Description="BWRGW"
 After=rethos.service
 Requires=rethos.service
-After=ragent.service
-Requires=ragent.service
 
 [Service]
 Restart=always

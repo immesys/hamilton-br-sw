@@ -76,3 +76,6 @@ then
   echo "could not overlay firmware"
   exit 1
 fi
+
+# use the time on the fs
+/opt/fake-hwclock.sh load

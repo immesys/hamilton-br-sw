@@ -176,18 +176,24 @@ func checkExtremeAction(bcip *bw2bind.CurrentBCIP) {
 	timeEnteredBadness = time.Time{}
 	return
 }
-func processWANStatus(bw *bw2bind.BW2Client) {
+func processWANStatus() {
 	lasterr := puberror
 	lastsucc := pubsucc
 	lastReset := time.Now()
 	lastAdvisory := BLINKING1
 	for {
-		bcip, err := bw.GetBCInteractionParams()
-		if err != nil {
-			fmt.Printf("Could not get BCIP: %v\n", err)
-			die()
+		var bcip *bw2bind.CurrentBCIP
+		bw, _ := getClient()
+		if bw == nil {
+			hasInternet = false
+		} else {
+			var err error
+			bcip, err = bw.GetBCInteractionParams()
+			if err != nil {
+				fmt.Printf("Could not get BCIP: %v\n", err)
+				die()
+			}
 		}
-		checkExtremeAction(bcip)
 		if hasInternet {
 			if bcip.CurrentAge > BadAge {
 				lastAdvisory = BLINKING1
@@ -256,7 +262,7 @@ type LinkStats struct {
 	BRGW_PubERR         uint64 `msgpack:"br_pub_err"`
 }
 
-func processStats(bw *bw2bind.BW2Client) {
+func processStats() {
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: "@rethos/0", Net: "unixpacket"})
 	if err != nil {
 		fmt.Printf("heartbeat socket: error: %v\n", err)
@@ -302,20 +308,26 @@ func processStats(bw *bw2bind.BW2Client) {
 		ls.BRGW_PubERR = puberror
 		ls.BRGW_PubOK = pubsucc
 		po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.FromDotForm("2.0.10.2"), ls)
-		err = bw.Publish(&bw2bind.PublishParams{
-			URI:            fmt.Sprintf("%s/%s/s.hamilton/_/i.l7g/signal/stats", BaseURI, OurPopID),
-			PayloadObjects: []bw2bind.PayloadObject{po},
-		})
-		if err != nil {
-			atomic.AddUint64(&puberror, 1)
-			fmt.Printf("BW2 status publish failure: %v\n", err)
+		bw, err := getClient()
+		if bw != nil {
+			err = bw.Publish(&bw2bind.PublishParams{
+				URI:            fmt.Sprintf("%s/%s/s.hamilton/_/i.l7g/signal/stats", BaseURI, OurPopID),
+				PayloadObjects: []bw2bind.PayloadObject{po},
+			})
+			if err != nil {
+				atomic.AddUint64(&puberror, 1)
+				fmt.Printf("BW2 status publish failure: %v\n", err)
+			} else {
+				atomic.AddUint64(&pubsucc, 1)
+			}
 		} else {
-			atomic.AddUint64(&pubsucc, 1)
+			atomic.AddUint64(&puberror, 1)
+			fmt.Printf("BW2 no publish: bad client %v\n", err)
 		}
 	}
 }
 
-func processIncomingData(bw *bw2bind.BW2Client) {
+func processIncomingData() {
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: "@rethos/5", Net: "unixpacket"})
 	if err != nil {
 		fmt.Printf("heartbeat socket: error: %v\n", err)
@@ -333,17 +345,25 @@ func processIncomingData(bw *bw2bind.BW2Client) {
 			fmt.Println("bad frame")
 			continue
 		}
-		po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.PONumL7G1Raw, frame)
-		err = bw.Publish(&bw2bind.PublishParams{
-			URI:            fmt.Sprintf("%s/%s/s.hamilton/%s/i.l7g/signal/raw", BaseURI, OurPopID, frame.Srcmac),
-			PayloadObjects: []bw2bind.PayloadObject{po},
-		})
-		totaltx++
-		if err != nil {
-			atomic.AddUint64(&puberror, 1)
-			fmt.Printf("BW2 publish error: %v\n", err)
+		logFrameToDatalogger(frame)
+		bwcl, err := getClient()
+		if bwcl != nil {
+			po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.PONumL7G1Raw, frame)
+			err = bwcl.Publish(&bw2bind.PublishParams{
+				URI:            fmt.Sprintf("%s/%s/s.hamilton/%s/i.l7g/signal/raw", BaseURI, OurPopID, frame.Srcmac),
+				PayloadObjects: []bw2bind.PayloadObject{po},
+			})
+			if err != nil {
+				atomic.AddUint64(&puberror, 1)
+				fmt.Printf("BW2 publish error: %v\n", err)
+				clientIsBroken()
+			} else {
+				atomic.AddUint64(&pubsucc, 1)
+			}
+			totaltx++
 		} else {
-			atomic.AddUint64(&pubsucc, 1)
+			atomic.AddUint64(&puberror, 1)
+			fmt.Printf("BW2 no publish: bad client %v\n", err)
 		}
 	}
 }
@@ -413,17 +433,11 @@ func main() {
 	if strings.HasSuffix(BaseURI, "/") {
 		BaseURI = BaseURI[:len(BaseURI)-1]
 	}
-	bw := bw2bind.ConnectOrExit("")
-	bw.SetEntityFromEnvironOrExit()
-	bw.OverrideAutoChainTo(true)
-	var Maxage int64 = 6 * 60 * 60
-	bw.SetBCInteractionParams(&bw2bind.BCIP{
-		Maxage: &Maxage,
-	})
+
 	go processIncomingHeartbeats()
-	go processWANStatus(bw)
-	go processStats(bw)
-	processIncomingData(bw)
+	go processWANStatus()
+	go processStats()
+	processIncomingData()
 }
 
 func unpack(frame []byte) (*egressmessage, bool) {

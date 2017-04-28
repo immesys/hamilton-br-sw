@@ -3,11 +3,13 @@ syntax = "proto3";
 package pb;
 
 message LogSet {
-  int64 time = 1;
-  repeated LogEntry logentry = 2;
+  int64 startTime = 1;
+  int64 endTime = 2;
+  repeated LogEntry logs = 3;
 }
 message LogEntry {
-  L7GFrame l7g = 1;
+  int64 time = 1;
+  L7GFrame l7g = 2;
 }
 
 message L7GFrame {
