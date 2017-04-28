@@ -1,0 +1,22 @@
+syntax = "proto3";
+//Version 1.0
+package pb;
+
+message LogSet {
+  int64 time = 1;
+  repeated LogEntry logentry = 2;
+}
+message LogEntry {
+  L7GFrame l7g = 1;
+}
+
+message L7GFrame {
+  string srcmac = 1;
+  string srcip = 2;
+  string popid = 3;
+  int64 poptime = 4;
+  int64 brtime = 5;
+  int32 rssi = 6;
+  int32 lqi = 7;
+  bytes payload = 8;
+}
