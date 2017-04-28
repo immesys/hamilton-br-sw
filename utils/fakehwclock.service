@@ -1,0 +1,6 @@
+[Unit]
+Description=Fake HW Clock save
+
+[Service]
+Type=simple
+ExecStart=/opt/fake-hwclock.sh

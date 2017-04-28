@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -21,6 +22,7 @@ type dataLoggerCache struct {
 	sync.Mutex
 }
 
+const datalogparent = "/volatile"
 const datalogdir = "/volatile/datalogger"
 
 //500MB
@@ -54,7 +56,7 @@ func logFrameToDatalogger(f *egressmessage) {
 }
 
 func getFilename(t time.Time) string {
-	return t.Format("2006/01_Jan/02_Mon/15")
+	return path.Join(datalogdir, t.Format("2006/01_Jan/02_Mon/15/")) + "/hbr_" + t.Format("2006_01_02__15_04") + ".dat"
 }
 func flushDLCLoop() {
 	for {
@@ -63,14 +65,15 @@ func flushDLCLoop() {
 	}
 }
 
-const LengthFlushTrip = 500
-const TimeFlushTrip = 1 * time.Minute
+const LengthFlushTrip = 10000
+const TimeFlushTrip = 10 * time.Minute
 
 func flushDLC() {
 
 	DLC.Lock()
-	if len(DLC.messages) < LengthFlushTrip &&
-		time.Now().Sub(DLC.lastFlush) < TimeFlushTrip {
+	if len(DLC.messages) == 0 || (len(DLC.messages) < LengthFlushTrip &&
+		time.Now().Sub(DLC.lastFlush) < TimeFlushTrip) {
+		fmt.Printf("We have %d messages in queue\n", len(DLC.messages))
 		DLC.Unlock()
 		fmt.Printf("Skipping DLC flush, no conditions\n")
 		return
@@ -81,6 +84,7 @@ func flushDLC() {
 	DLC.lastFlush = time.Now()
 	DLC.Unlock()
 
+	fmt.Printf("flushing %d messages\n", len(msgs))
 	// //Establish the marker file is there
 	// dat, _ := ioutil.ReadFile(path.Join(datalogdir, "enable"))
 	// if string(dat) != "enable_datalogger" {
@@ -88,7 +92,7 @@ func flushDLC() {
 	// }
 	//Establish there is space
 	var stat syscall.Statfs_t
-	err := syscall.Statfs(datalogdir, &stat)
+	err := syscall.Statfs(datalogparent, &stat)
 	if err != nil {
 		fmt.Printf("Skipping DLC flush, stat error: %v\n", err)
 		return
@@ -100,6 +104,7 @@ func flushDLC() {
 	}
 
 	ls := pb.LogSet{}
+
 	mintime := msgs[0].Time
 	maxtime := msgs[0].Time
 	for _, m := range msgs {
@@ -109,7 +114,7 @@ func flushDLC() {
 		if m.Time > maxtime {
 			maxtime = m.Time
 		}
-		ls.Logentry = append(ls.Logentry, m)
+		ls.Logs = append(ls.Logs, m)
 	}
 	ls.StartTime = mintime
 	ls.EndTime = maxtime
@@ -117,7 +122,7 @@ func flushDLC() {
 	//populate
 	data, err := proto.Marshal(&ls)
 	if err != nil {
-		fmt.Printf("marshaling error: \n", err)
+		fmt.Printf("marshaling error: %v \n", err)
 		return
 	}
 	sum := md5.Sum(data)
@@ -131,11 +136,24 @@ func flushDLC() {
 		return
 	}
 	f, err := os.OpenFile(fname, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		fmt.Printf("Could open flush file: %v\n", err)
+		return
+	}
+	defer f.Close()
 	hdr := make([]byte, 8+4+16)
 	copy(hdr[0:8], TOKEN[:])
 	binary.LittleEndian.PutUint32(hdr[8:12], uint32(sz))
 	copy(hdr[12:], sum[:])
-	f.Write(hdr)
-	f.Write(data)
-	f.Close()
+	_, err = f.Write(hdr)
+	if err != nil {
+		fmt.Printf("Could open write DLC file: %v\n", err)
+		return
+	}
+	_, err = f.Write(data)
+	if err != nil {
+		fmt.Printf("Could open write DLC file: %v\n", err)
+		return
+	}
+	fmt.Printf("Flushed DLC to %s\n", fname)
 }

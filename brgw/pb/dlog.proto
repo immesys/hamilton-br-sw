@@ -5,7 +5,7 @@ package pb;
 message LogSet {
   int64 startTime = 1;
   int64 endTime = 2;
-  repeated LogEntry logentry = 3;
+  repeated LogEntry logs = 3;
 }
 message LogEntry {
   int64 time = 1;
