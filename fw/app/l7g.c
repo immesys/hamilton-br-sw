@@ -34,7 +34,8 @@ void _handle_incoming_pkt(gnrc_pktsnip_t *p)
   ipv6_hdr_t *ip = (ipv6_hdr_t *)tmp->data;
   LL_SEARCH_SCALAR(p, tmp, type, GNRC_NETTYPE_NETIF);
   gnrc_netif_hdr_t *nif = (gnrc_netif_hdr_t *)tmp->data;
-  memcpy(&shdr.srcmac[0], gnrc_netif_hdr_get_src_addr(nif), 8);
+  memset(&shdr.srcmac[0], 8, 0);
+  memcpy(&shdr.srcmac[0], gnrc_netif_hdr_get_src_addr(nif), nif->src_l2addr_len);
   shdr.rssi = nif->rssi;
   shdr.lqi = nif->lqi;
   memcpy(&shdr.srcip[0], &ip->src.u8[0], 16);
