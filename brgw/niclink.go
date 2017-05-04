@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -263,23 +264,18 @@ type LinkStats struct {
 }
 
 func processStats() {
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: "@rethos/0", Net: "unixpacket"})
+	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "@rethos/0", Net: "unix"})
 	if err != nil {
 		fmt.Printf("heartbeat socket: error: %v\n", err)
 		die()
 	}
 	for {
-		buf := make([]byte, 32*1024)
-		num, _, err := conn.ReadFromUnix(buf)
+		buf := make([]byte, 10296)
+		_, err := io.ReadFull(conn, buf)
 		if err != nil {
 			fmt.Printf("Unix socket error: %v\n", err)
 			os.Exit(1)
 		}
-		if num < 10256 {
-			fmt.Printf("Abort malformed stats frame, length %d\n", num)
-			os.Exit(1)
-		}
-		buf = buf[:num]
 		ls := LinkStats{}
 		idx := 4 //Skip the first four fields
 		ls.BadFrames = binary.LittleEndian.Uint64(buf[idx*8:])
