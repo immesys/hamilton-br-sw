@@ -317,6 +317,7 @@ func processStats() {
 			if err != nil {
 				atomic.AddUint64(&puberror, 1)
 				fmt.Printf("BW2 status publish failure: %v\n", err)
+				clientIsBroken()
 			} else {
 				atomic.AddUint64(&pubsucc, 1)
 			}
