@@ -113,8 +113,6 @@ void heartbeat_callback(ethos_t *dev, uint8_t channel, uint8_t *data, uint16_t l
     if (length >= 4) {
         last_hb = xtimer_now_usec64();
         wan_status = data[1];
-
-        wdt_clear();
     }
 }
 
@@ -240,6 +238,7 @@ int main(void)
 
       if (xtimer_now_usec64() - last_hb < MAX_HB_TIME) {
         //Heartbeats ok
+        wdt_clear();
         gpio_set(D3_PIN);
         switch(wan_status) {
           case BLINKING1:
