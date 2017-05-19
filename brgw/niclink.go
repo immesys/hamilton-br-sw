@@ -49,7 +49,9 @@ var pubsucc uint64
 var BRName string
 
 func writeMessage(conn net.Conn, message []byte) error {
-	err := binary.Write(conn, binary.BigEndian, len(message))
+        hdr := make([]byte,4)
+	binary.BigEndian.PutUint32(hdr[:], uint32(len(message)))
+	_, err := conn.Write(hdr) //binary.Write(conn, binary.BigEndian, len(message))
 	if err != nil {
 		return err
 	}
@@ -58,12 +60,12 @@ func writeMessage(conn net.Conn, message []byte) error {
 }
 
 func readMessage(conn net.Conn) ([]byte, error) {
-	var msgsize uint32
-	err := binary.Read(conn, binary.BigEndian, &msgsize)
+	hdr := make([]byte,4)
+	_, err := io.ReadFull(conn, hdr)
 	if err != nil {
 		return nil, err
 	}
-
+	msgsize := binary.BigEndian.Uint32(hdr[0:])
 	buf := make([]byte, msgsize, msgsize)
 	_, err = io.ReadFull(conn, buf)
 	return buf, err
