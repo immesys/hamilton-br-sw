@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -47,11 +48,34 @@ var pubsucc uint64
 
 var BRName string
 
+func writeMessage(conn net.Conn, message []byte) error {
+        hdr := make([]byte,4)
+	binary.BigEndian.PutUint32(hdr[:], uint32(len(message)))
+	_, err := conn.Write(hdr) //binary.Write(conn, binary.BigEndian, len(message))
+	if err != nil {
+		return err
+	}
+	_, err = conn.Write(message)
+	return err
+}
+
+func readMessage(conn net.Conn) ([]byte, error) {
+	hdr := make([]byte,4)
+	_, err := io.ReadFull(conn, hdr)
+	if err != nil {
+		return nil, err
+	}
+	msgsize := binary.BigEndian.Uint32(hdr[0:])
+	buf := make([]byte, msgsize, msgsize)
+	_, err = io.ReadFull(conn, buf)
+	return buf, err
+}
+
 func die() {
 	os.Exit(1)
 }
 func processIncomingHeartbeats() {
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: "@rethos/4", Net: "unixpacket"})
+	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "@rethos/4", Net: "unix"})
 	if err != nil {
 		fmt.Printf("heartbeat socket: error: %v\n", err)
 		die()
@@ -78,7 +102,7 @@ func processIncomingHeartbeats() {
 			msg[1] = byte(wanstate)
 			msg[2] = 0x55
 			msg[3] = 0xAA
-			_, err := conn.Write(msg)
+			err := writeMessage(conn, msg)
 			if err != nil {
 				fmt.Printf("got wanstate error: %v\n", err)
 				os.Exit(10)
@@ -105,12 +129,12 @@ func processIncomingHeartbeats() {
 	}()
 	fmt.Println("hearbeat socket: connected ok")
 	for {
-		buf := make([]byte, 16*1024)
-		num, _, err := conn.ReadFromUnix(buf)
+		buf, err := readMessage(conn)
 		if err != nil {
 			fmt.Printf("heartbeat socket: error: %v\n", err)
 			die()
 		}
+		num := len(buf)
 		if num >= 12 && binary.LittleEndian.Uint32(buf) == HbTypeMcuToPi {
 			gotHeartbeat <- true
 			go wd.RLKick(5*time.Second, "410.br."+BRName+".mcu", 30)
@@ -263,23 +287,22 @@ type LinkStats struct {
 }
 
 func processStats() {
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: "@rethos/0", Net: "unixpacket"})
+	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "@rethos/0", Net: "unix"})
 	if err != nil {
 		fmt.Printf("heartbeat socket: error: %v\n", err)
 		die()
 	}
 	for {
-		buf := make([]byte, 32*1024)
-		num, _, err := conn.ReadFromUnix(buf)
+		buf, err := readMessage(conn)
 		if err != nil {
 			fmt.Printf("Unix socket error: %v\n", err)
 			os.Exit(1)
 		}
+		num := len(buf)
 		if num < 10256 {
 			fmt.Printf("Abort malformed stats frame, length %d\n", num)
 			os.Exit(1)
 		}
-		buf = buf[:num]
 		ls := LinkStats{}
 		idx := 4 //Skip the first four fields
 		ls.BadFrames = binary.LittleEndian.Uint64(buf[idx*8:])
@@ -329,18 +352,18 @@ func processStats() {
 }
 
 func processIncomingData() {
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: "@rethos/5", Net: "unixpacket"})
+	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "@rethos/5", Net: "unix"})
 	if err != nil {
 		fmt.Printf("heartbeat socket: error: %v\n", err)
 		die()
 	}
 	for {
-		buf := make([]byte, 16*1024)
-		num, _, err := conn.ReadFromUnix(buf)
+		buf, err := readMessage(conn)
 		if err != nil {
 			fmt.Printf("data socket: error: %v\n", err)
 			die()
 		}
+		num := len(buf)
 		frame, ok := unpack(buf[:num])
 		if !ok {
 			fmt.Println("bad frame")
