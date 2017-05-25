@@ -33,6 +33,8 @@ var PILED = rpi.P1_22
 
 var MCUBuildNumber uint32
 
+const BRGWBuildNumber = 300
+
 var LedChan chan int
 
 const FULLOFF = 1
@@ -289,6 +291,7 @@ type LinkStats struct {
 	BRGW_PubOK          uint64 `msgpack:"br_pub_ok"`
 	BRGW_PubERR         uint64 `msgpack:"br_pub_err"`
 	MCUBuild            uint32 `msgpack:"mcu_version"`
+	BRGWBuild           uint32 `msgpack:"brgw_version"`
 }
 
 func processStats() {
@@ -310,6 +313,7 @@ func processStats() {
 		}
 		ls := LinkStats{}
 		ls.MCUBuild = atomic.LoadUint32(&MCUBuildNumber)
+		ls.BRGWBuild = BRGWBuildNumber
 		idx := 4 //Skip the first four fields
 		ls.BadFrames = binary.LittleEndian.Uint64(buf[idx*8:])
 		idx++
