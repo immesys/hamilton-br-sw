@@ -98,7 +98,7 @@ kernel_pid_t start_l7g(void);
 #define BLINKING2  4
 #define BLINKING3  5
 
-#define BUILDVER 200
+#define BUILDVER 300
 int wan_status;
 int hb_status;
 uint64_t last_hb;

@@ -31,6 +31,8 @@ const HbTypePiToMcu = 2
 
 var PILED = rpi.P1_22
 
+var MCUBuildNumber uint32
+
 var LedChan chan int
 
 const FULLOFF = 1
@@ -49,7 +51,7 @@ var pubsucc uint64
 var BRName string
 
 func writeMessage(conn net.Conn, message []byte) error {
-        hdr := make([]byte,4)
+	hdr := make([]byte, 4)
 	binary.BigEndian.PutUint32(hdr[:], uint32(len(message)))
 	_, err := conn.Write(hdr) //binary.Write(conn, binary.BigEndian, len(message))
 	if err != nil {
@@ -60,7 +62,7 @@ func writeMessage(conn net.Conn, message []byte) error {
 }
 
 func readMessage(conn net.Conn) ([]byte, error) {
-	hdr := make([]byte,4)
+	hdr := make([]byte, 4)
 	_, err := io.ReadFull(conn, hdr)
 	if err != nil {
 		return nil, err
@@ -135,8 +137,10 @@ func processIncomingHeartbeats() {
 			die()
 		}
 		num := len(buf)
-		if num >= 12 && binary.LittleEndian.Uint32(buf) == HbTypeMcuToPi {
+		if num >= 16 && binary.LittleEndian.Uint32(buf) == HbTypeMcuToPi {
 			gotHeartbeat <- true
+			McuVer := binary.LittleEndian.Uint32(buf[12:])
+			atomic.StoreUint32(&MCUBuildNumber, McuVer)
 			go wd.RLKick(5*time.Second, "410.br."+BRName+".mcu", 30)
 		} else {
 			hbokay <- false
@@ -284,6 +288,7 @@ type LinkStats struct {
 	SumSerialForwarded  uint64 `msgpack:"sum_serial_forwarded"`
 	BRGW_PubOK          uint64 `msgpack:"br_pub_ok"`
 	BRGW_PubERR         uint64 `msgpack:"br_pub_err"`
+	MCUBuild            uint32 `msgpack:"mcu_version"`
 }
 
 func processStats() {
@@ -304,6 +309,7 @@ func processStats() {
 			os.Exit(1)
 		}
 		ls := LinkStats{}
+		ls.MCUBuild = atomic.LoadUint32(&MCUBuildNumber)
 		idx := 4 //Skip the first four fields
 		ls.BadFrames = binary.LittleEndian.Uint64(buf[idx*8:])
 		idx++
