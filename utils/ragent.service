@@ -6,7 +6,7 @@ Requires=prepwan.service
 [Service]
 Restart=always
 RestartSec=5
-ExecStart=/firmware/ragent client /firmware/ragentclient.ent ragent.cal-sdb.org:28590 "MT3dKUYB8cnIfsbnPrrgy8Cb_8whVKM-Gtg2qd79Xco=" 127.0.0.1:28589
+ExecStart=/firmware/ragent client /firmware/ragentclient.ent corbusier.cs.berkeley.edu:28590 "Zx_XKao6DABj6yOp5zrLPNF4SIagn_blm1ZyG_k_zy8=" 127.0.0.1:28589
 
 [Install]
 WantedBy=multi-user.target

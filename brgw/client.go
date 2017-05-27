@@ -1,6 +1,10 @@
 package main
 
-import "gopkg.in/immesys/bw2bind.v5"
+import (
+	"time"
+
+	"gopkg.in/immesys/bw2bind.v5"
+)
 
 var bwcl *bw2bind.BW2Client
 
@@ -23,5 +27,7 @@ func getClient() (*bw2bind.BW2Client, error) {
 }
 
 func clientIsBroken() {
+	bwcl.Close()
 	bwcl = nil
+	time.Sleep(5 * time.Second)
 }
