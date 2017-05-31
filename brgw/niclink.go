@@ -466,6 +466,7 @@ func main() {
 	//TODO set the Pi Led OFF before you do
 	//anything that could cause exit
 	OurPopID = lic.KitId
+	BRName = lic.Licensee + "." + lic.KitId
 	BaseURI = fmt.Sprintf("hamiltonbackend/%s", lic.Licensee)
 
 	if _, err := host.Init(); err != nil {
