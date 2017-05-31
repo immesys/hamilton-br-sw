@@ -311,7 +311,7 @@ func publishctx(ctx context.Context, p *bw2bind.PublishParams) error {
 	select {
 	case e := <-rve:
 		return e
-	case ctx.Done():
+	case <-ctx.Done():
 		return ctx.Err()
 	}
 }
