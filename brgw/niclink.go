@@ -22,6 +22,7 @@ import (
 
 var OurPopID string
 var BaseURI string
+var EntityBlob []byte
 var totaltx int
 
 const HeartbeatTimeout = 2 * time.Second
@@ -461,6 +462,7 @@ func main() {
 		fmt.Printf("Invalid license!\n")
 		os.Exit(5)
 	}
+	EntityBlob = lic.Entity
 	//TODO set the Pi Led OFF before you do
 	//anything that could cause exit
 	OurPopID = lic.KitId
