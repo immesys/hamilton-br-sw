@@ -1,6 +1,7 @@
 [Unit]
 Description=WatchDog top
 Documentation=https://github.com/immesys/wd/wdtop
+After=mfs.service
 
 [Service]
 Environment=WD_TOKEN=be1b00e87176d9a7a247b2b33fe1b43991136fa45706d4c7b9ba518f3ed48dd9

@@ -6,7 +6,6 @@ Requires=rethos.service
 [Service]
 Restart=always
 RestartSec=10
-EnvironmentFile=/config/config.ini
 ExecStart=/firmware/brgw
 
 [Install]

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -457,6 +456,16 @@ func printStats() {
 	}
 }
 func main() {
+	lic := checklicense()
+	if !lic.Valid {
+		fmt.Printf("Invalid license!\n")
+		os.Exit(5)
+	}
+	//TODO set the Pi Led OFF before you do
+	//anything that could cause exit
+	OurPopID = lic.KitId
+	BaseURI = fmt.Sprintf("hamiltonbackend/%s", lic.Licensee)
+
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}
@@ -466,23 +475,6 @@ func main() {
 	go LedAnim(LedChan)
 	go checkInternet()
 	go printStats()
-	//TODO set the Pi Led OFF before you do
-	//anything that could cause exit
-	OurPopID = os.Getenv("POP_ID")
-	if OurPopID == "" {
-		fmt.Println("Missing $POP_ID")
-		die()
-	}
-	BRName = strings.Replace(OurPopID, "-", "_", -1)
-	BRName = strings.ToLower(OurPopID)
-	BaseURI = os.Getenv("POP_BASE_URI")
-	if BaseURI == "" {
-		fmt.Println("Missing $POP_BASE_URI")
-		die()
-	}
-	if strings.HasSuffix(BaseURI, "/") {
-		BaseURI = BaseURI[:len(BaseURI)-1]
-	}
 
 	go processIncomingHeartbeats()
 	go processWANStatus()

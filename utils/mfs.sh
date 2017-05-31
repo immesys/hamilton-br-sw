@@ -11,7 +11,8 @@ partprobe
 if [ ! -e /dev/sda2 ]
 then
   echo "Disk not found"
-  exit 1
+  sleep 300
+  reboot
 fi
 
 fsck.ext4 -f -p /dev/sda2
@@ -22,7 +23,8 @@ then
   if [ $? -ne 0 ]
   then
     echo "could not format"
-    exit 1
+    sleep 300
+    reboot
   fi
 fi
 
@@ -30,7 +32,8 @@ mount -t ext4 /dev/sda2 /volatile
 if [ $? -ne 0 ]
 then
   echo "could not mount /volatile"
-  exit 1
+  sleep 300
+  reboot
 fi
 
 mkdir -p /volatile/upper
@@ -46,14 +49,16 @@ none /merged
 if [ $? -ne 0 ]
 then
   echo "could not make overlay"
-  exit 1
+  sleep 300
+  reboot
 fi
 
 mount -o ro /dev/sda1 /config
 if [ $? -ne 0 ]
 then
   echo "could not mount config"
-  exit 1
+  sleep 300
+  reboot
 fi
 
 mkdir -p /volatile/upper/firmware
@@ -64,7 +69,8 @@ then
   if [ $? -ne 0 ]
   then
     echo "could not copy firmware"
-    exit 1
+    sleep 300
+    reboot
   fi
 fi
 
@@ -74,7 +80,8 @@ overlay /firmware
 if [ $? -ne 0 ]
 then
   echo "could not overlay firmware"
-  exit 1
+  sleep 300
+  reboot
 fi
 
 # use the time on the fs
