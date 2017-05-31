@@ -25,14 +25,14 @@ type state struct {
 
 func checklicense() (rv *state) {
 	st := state{}
-	defer func() {
-		r := recover()
-		if r != nil {
-			fmt.Printf("license panic: %v\n", r)
-			gst := state{}
-			rv = &gst
-		}
-	}()
+	// defer func() {
+	// 	r := recover()
+	// 	if r != nil {
+	// 		fmt.Printf("license panic: %v\n", r)
+	// 		gst := state{}
+	// 		rv = &gst
+	// 	}
+	// }()
 	mastervk, _ := crypto.UnFmtKey(mastervkstring)
 	infile, err := os.Open("/config/license.lic")
 	if err != nil {
