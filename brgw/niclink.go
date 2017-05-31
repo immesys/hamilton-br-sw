@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -294,6 +295,26 @@ type LinkStats struct {
 	BRGWBuild           uint32 `msgpack:"brgw_version"`
 }
 
+func publishctx(ctx context.Context, p *bw2bind.PublishParams) error {
+	bw, err := getClient()
+	if err != nil {
+		return err
+	}
+	if bw == nil {
+		return fmt.Errorf("bad client (nil)")
+	}
+	rve := make(chan error, 1)
+	go func() {
+		err = bw.Publish(p)
+		rve <- err
+	}()
+	select {
+	case e := <-rve:
+		return e
+	case ctx.Done():
+		return ctx.Err()
+	}
+}
 func processStats() {
 	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "@rethos/0", Net: "unix"})
 	if err != nil {
@@ -341,22 +362,20 @@ func processStats() {
 		ls.BRGW_PubERR = puberror
 		ls.BRGW_PubOK = pubsucc
 		po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.FromDotForm("2.0.10.2"), ls)
-		bw, err := getClient()
-		if bw != nil {
-			err = bw.Publish(&bw2bind.PublishParams{
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		err = publishctx(ctx,
+			&bw2bind.PublishParams{
 				URI:            fmt.Sprintf("%s/%s/s.hamilton/_/i.l7g/signal/stats", BaseURI, OurPopID),
 				PayloadObjects: []bw2bind.PayloadObject{po},
 			})
-			if err != nil {
-				atomic.AddUint64(&puberror, 1)
-				fmt.Printf("BW2 status publish failure: %v\n", err)
-				clientIsBroken()
-			} else {
-				atomic.AddUint64(&pubsucc, 1)
-			}
-		} else {
+		cancel()
+		if err != nil {
 			atomic.AddUint64(&puberror, 1)
-			fmt.Printf("BW2 no publish: bad client %v\n", err)
+			fmt.Printf("BW2 status publish failure: %v\n", err)
+			clientIsBroken()
+		} else {
+			atomic.AddUint64(&pubsucc, 1)
 		}
 	}
 }
@@ -380,25 +399,22 @@ func processIncomingData() {
 			continue
 		}
 		logFrameToDatalogger(frame)
-		bwcl, err := getClient()
-		if bwcl != nil {
-			po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.PONumL7G1Raw, frame)
-			err = bwcl.Publish(&bw2bind.PublishParams{
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		po, _ := bw2bind.CreateMsgPackPayloadObject(bw2bind.PONumL7G1Raw, frame)
+		err = publishctx(ctx,
+			&bw2bind.PublishParams{
 				URI:            fmt.Sprintf("%s/%s/s.hamilton/%s/i.l7g/signal/raw", BaseURI, OurPopID, frame.Srcmac),
 				PayloadObjects: []bw2bind.PayloadObject{po},
 			})
-			if err != nil {
-				atomic.AddUint64(&puberror, 1)
-				fmt.Printf("BW2 publish error: %v\n", err)
-				clientIsBroken()
-			} else {
-				atomic.AddUint64(&pubsucc, 1)
-			}
-			totaltx++
-		} else {
+		cancel()
+		if err != nil {
 			atomic.AddUint64(&puberror, 1)
-			fmt.Printf("BW2 no publish: bad client %v\n", err)
+			fmt.Printf("BW2 publish error: %v\n", err)
+			clientIsBroken()
+		} else {
+			atomic.AddUint64(&pubsucc, 1)
 		}
+		totaltx++
 	}
 }
 
