@@ -39,7 +39,7 @@ func checklicense() (rv *state) {
 		fmt.Printf("LICENSE OPEN ERROR\n")
 		return &st
 	}
-	whole, err := ioutil.ReadFile(os.Args[1])
+	whole, err := ioutil.ReadFile("/config/license.lic")
 	if err != nil {
 		fmt.Printf("LICENSE  OPEN ERROR\n")
 		return &st

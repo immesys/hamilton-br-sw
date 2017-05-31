@@ -3,7 +3,7 @@
 # we assume mfs has run here already
 eval $(/firmware/verifylic /config/license.lic)
 
-if [ "$LIC_VALID" != "true"]
+if [ "$LIC_VALID" != "true" ]
 then
   echo "Invalid license"
   sleep 600
@@ -16,10 +16,10 @@ hostname $KIT_ID
 if [ -e "/config/network.cfg" ]
 then
   NETWORK=$(cat /config/network.cfg | grep -v "^#" | sed -rn 's/NETWORK=(\w*)\s*$/\1/p')
-  if [ "$NETWORK" == STATIC ]
+  if [ "$NETWORK" == "STATIC" ]
   then
-    STATICIP=$(cat /config/network.cfg | grep -v "^#" | sed -rn 's/STATIC_IP=(\w*)\s*$/\1/p')
-    GATEWAY=$(cat /config/network.cfg | grep -v "^#" | sed -rn 's/GATEWAY=(\w*)\s*$/\1/p')
+    STATICIP=$(cat /config/network.cfg | grep -v "^#" | sed -rn 's/STATIC_IP=([^\s]*)\s*$/\1/p')
+    GATEWAY=$(cat /config/network.cfg | grep -v "^#" | sed -rn 's/GATEWAY=([^\s]*)\s*$/\1/p')
   fi
 else
   NETWORK=DHCP
