@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -467,8 +468,12 @@ func main() {
 	//anything that could cause exit
 	OurPopID = lic.KitId
 	BRName = lic.Licensee + "." + lic.KitId
-	BaseURI = fmt.Sprintf("hamiltonbackend/%s", lic.Licensee)
-
+	ovr := os.Getenv("OVERRIDE_BASE_URI")
+	if ovr == "" {
+		BaseURI = fmt.Sprintf("hamiltonbackend/%s", lic.Licensee)
+	} else {
+		BaseURI = strings.TrimSuffix(ovr, "/")
+	}
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}

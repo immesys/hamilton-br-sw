@@ -27,12 +27,13 @@ fi
 
 if [ "$NETWORK" = "DHCP" ]
 then
-  dhclient -timeout 1800 eth0
+  dhclient eth0
   if [ $? -eq 0 ]
   then
     echo "Successfully completed DHCP"
   else
     echo "DHCP failed"
+    sleep 300
     reboot
   fi
 fi
