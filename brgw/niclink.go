@@ -35,7 +35,7 @@ var PILED = rpi.P1_22
 
 var MCUBuildNumber uint32
 
-const BRGWBuildNumber = 601
+const BRGWBuildNumber = 602
 
 var LedChan chan int
 
