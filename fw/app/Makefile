@@ -3,9 +3,10 @@ APPLICATION = rethos-br
 
 # If no BOARD is found in the environment, use this default:
 BOARD = samr21-xpro
+PROGRAMMER ?= jlink
 
 # This has to be the absolute path to the RIOT base directory:
-RIOTBASE = $(CURDIR)/../RIOT
+RIOTBASE ?= $(CURDIR)/../RIOT
 
 BOARD_INSUFFICIENT_MEMORY := airfy-beacon cc2650stk msb-430 msb-430h pca10000 pca10005 \
                              nrf51dongle nrf6310 nucleo-f103 nucleo-f334 \
@@ -18,10 +19,10 @@ ifeq (,$(filter native,$(BOARD)))
 GNRC_NETIF_NUMOF := 2
 USEMODULE += rethos
 USEMODULE += random
-USEMODULE += gnrc_netdev2
+USEMODULE += gnrc_netdev
 CFLAGS += -DRTT_STDIO_DISABLE_STDIN
 USEMODULE += rtt_stdio
-
+CFLAGS += -DAUTO_CSMA_EN=1
 USEMODULE += at86rf233
 
 # Prefix length is assumed to be 64
@@ -40,11 +41,11 @@ endif
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
-USEMODULE += gnrc_ipv6_autoconf_onehop
+#USEMODULE += gnrc_ipv6_autoconf_onehop
 USEMODULE += gnrc_netdev_default
 #USEMODULE += gnrc_dutymac
 USEMODULE += gnrc_udp
-USEMODULE += netdev2_eth
+USEMODULE += netdev_eth
 USEMODULE += auto_init_gnrc_netif
 USEMODULE += gnrc_sixlowpan_frag
 USEMODULE += gnrc_sixlowpan_iphc

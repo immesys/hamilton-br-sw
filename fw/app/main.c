@@ -28,11 +28,11 @@
 #include "net/gnrc/udp.h"
 #include "net/gnrc/netif/hdr.h"
 #include "net/gnrc/ipv6/netif.h"
-#include "net/gnrc/ipv6/autoconf_onehop.h"
+//#include "net/gnrc/ipv6/autoconf_onehop.h"
 
-#include "cmsis/samr21/include/component/gclk.h"
-#include "cmsis/samr21/include/component/wdt.h"
-#include "cmsis/samr21/include/instance/wdt.h"
+//#include "cmsis/samr21/include/component/gclk.h"
+//#include "cmsis/samr21/include/component/wdt.h"
+//#include "cmsis/samr21/include/instance/wdt.h"
 
 #define PAC0_BASE 0x40000000
 #define WDT_BASE 0x40001000
@@ -142,43 +142,43 @@ typedef struct __attribute__((packed))
 
 heartbeat_t hb;
 
-int get_ipv6_addr_from_ll(ipv6_addr_t* my_addr, kernel_pid_t radio_pid) {
-    ipv6_addr_t my_ipv6_addr;
-    if (ipv6_addr_from_str(&my_ipv6_addr, HAMILTON_BORDER_ROUTER_ADDRESS) == NULL) {
-        perror("invalid HAMILTON_BORDER_ROUTER_ADDRESS");
-        return 1;
-    }
-
-    eui64_t my_ll_addr;
-    gnrc_netapi_opt_t addr_req_opt;
-    msg_t addr_req;
-    msg_t addr_resp;
-
-    addr_req.type = GNRC_NETAPI_MSG_TYPE_GET;
-    addr_req.content.ptr = &addr_req_opt;
-
-    addr_req_opt.opt = NETOPT_ADDRESS_LONG;
-    addr_req_opt.data = &my_ll_addr;
-    addr_req_opt.data_len = sizeof(eui64_t);
-
-    msg_send_receive(&addr_req, &addr_resp, radio_pid);
-
-    if (addr_resp.content.value != 8) {
-        printf("Link layer address length is not 8 bytes (got %u)\n", (unsigned int) addr_resp.content.value);
-        return 1;
-    }
-
-    if (gnrc_ipv6_autoconf_l2addr_to_ipv6(&my_ipv6_addr, &my_ll_addr) != 0) {
-        printf("Could not convert link-layer address to IP address\n");
-        return 1;
-    }
-
-    if (my_addr != NULL) {
-        memcpy(my_addr, &my_ipv6_addr, sizeof(ipv6_addr_t));
-    }
-
-    return 0;
-}
+// int get_ipv6_addr_from_ll(ipv6_addr_t* my_addr, kernel_pid_t radio_pid) {
+//     ipv6_addr_t my_ipv6_addr;
+//     if (ipv6_addr_from_str(&my_ipv6_addr, HAMILTON_BORDER_ROUTER_ADDRESS) == NULL) {
+//         perror("invalid HAMILTON_BORDER_ROUTER_ADDRESS");
+//         return 1;
+//     }
+//
+//     eui64_t my_ll_addr;
+//     gnrc_netapi_opt_t addr_req_opt;
+//     msg_t addr_req;
+//     msg_t addr_resp;
+//
+//     addr_req.type = GNRC_NETAPI_MSG_TYPE_GET;
+//     addr_req.content.ptr = &addr_req_opt;
+//
+//     addr_req_opt.opt = NETOPT_ADDRESS_LONG;
+//     addr_req_opt.data = &my_ll_addr;
+//     addr_req_opt.data_len = sizeof(eui64_t);
+//
+//     msg_send_receive(&addr_req, &addr_resp, radio_pid);
+//
+//     if (addr_resp.content.value != 8) {
+//         printf("Link layer address length is not 8 bytes (got %u)\n", (unsigned int) addr_resp.content.value);
+//         return 1;
+//     }
+//
+//     if (gnrc_ipv6_autoconf_l2addr_to_ipv6(&my_ipv6_addr, &my_ll_addr) != 0) {
+//         printf("Could not convert link-layer address to IP address\n");
+//         return 1;
+//     }
+//
+//     if (my_addr != NULL) {
+//         memcpy(my_addr, &my_ipv6_addr, sizeof(ipv6_addr_t));
+//     }
+//
+//     return 0;
+// }
 
 // X X X X X X X X X
 // 1 0 0 0 0 0 0 0 0
@@ -189,13 +189,13 @@ int main(void)
     /* Set up the watchdog before anything else. */
     wdt_setup();
 
-    kernel_pid_t radio_pid = get_6lowpan_pid();
-    assert(radio_pid != 0);
-
-    if (get_ipv6_addr_from_ll(&ipv6_addr, radio_pid) != 0) {
-        printf("Could not set IPv6 address from link layer\n");
-        return 1;
-    }
+    // kernel_pid_t radio_pid = get_6lowpan_pid();
+    // assert(radio_pid != 0);
+    //
+    // if (get_ipv6_addr_from_ll(&ipv6_addr, radio_pid) != 0) {
+    //     printf("Could not set IPv6 address from link layer\n");
+    //     return 1;
+    // }
 
     char ipbuf[IPV6_ADDR_MAX_STR_LEN + 1];
     char* ipstr = ipv6_addr_to_str(ipbuf, &ipv6_addr, sizeof(ipbuf));
@@ -208,7 +208,7 @@ int main(void)
 
     //gnrc_ipv6_netif_t* radio_if = gnrc_ipv6_netif_get(radio_pid);
     //assert(radio_if != NULL);
-    gnrc_ipv6_netif_add_addr(radio_pid, &ipv6_addr, ipv6_prefix_bytes << 3, 0);
+    // gnrc_ipv6_netif_add_addr(radio_pid, &ipv6_addr, ipv6_prefix_bytes << 3, 0);
     //gnrc_ipv6_netif_set_router(radio_if, true);
 
     gpio_init(D1_PIN, GPIO_OUT);
